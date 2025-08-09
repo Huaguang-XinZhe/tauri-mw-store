@@ -1,0 +1,58 @@
+import { Store } from "@tauri-apps/plugin-store";
+
+export class PersistentAdapter {
+  private store: Store | null = null;
+  private initPromise: Promise<Store> | null = null;
+  private readonly fileName: string;
+
+  constructor(fileName = "multi-window-store.bin") {
+    this.fileName = fileName;
+    this.initPromise = Store.load(this.fileName).then((s) => {
+      this.store = s;
+      return s;
+    });
+  }
+
+  private async ensureStore(): Promise<Store> {
+    if (this.store) return this.store;
+    if (this.initPromise) return this.initPromise;
+    // 兜底：若构造函数未触发（理论上不会发生），再加载一次
+    this.initPromise = Store.load(this.fileName).then((s) => {
+      this.store = s;
+      return s;
+    });
+    return this.initPromise;
+  }
+
+  async load(keys: Set<string>): Promise<Record<string, any>> {
+    const store = await this.ensureStore();
+    const result: Record<string, any> = {};
+    for (const key of keys) {
+      const value = await store.get(key);
+      if (value !== null && value !== undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+
+  async save(key: string, value: any): Promise<void> {
+    const store = await this.ensureStore();
+    await store.set(key, value);
+    await store.save();
+  }
+
+  async remove(key: string): Promise<void> {
+    const store = await this.ensureStore();
+    await store.delete(key);
+    await store.save();
+  }
+
+  async clear(): Promise<void> {
+    const store = await this.ensureStore();
+    await store.clear();
+    await store.save();
+  }
+}
+
+export const persistentAdapter = new PersistentAdapter();

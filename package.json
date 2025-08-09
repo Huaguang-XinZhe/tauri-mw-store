@@ -1,0 +1,45 @@
+{
+  "name": "tauri-mw-store",
+  "version": "1.0.1",
+  "description": "Multi-window state sync for Tauri apps with React hooks and schema-driven store.",
+  "license": "MIT",
+  "author": "huaguang <2475096613@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Huaguang-XinZhe/tauri-mw-store.git"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=18",
+    "@tauri-apps/api": ">=1.5.0",
+    "@tauri-apps/plugin-store": "^2.3.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  }
+}

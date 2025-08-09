@@ -1,0 +1,22 @@
+# sources (not published)
+core/
+hooks/
+index.ts
+
+# tools
+node_modules/
+.DS_Store
+.vscode/
+.idea/
+.github/
+
+# tests and maps
+**/*.map
+**/*.test.*
+**/*.spec.*
+**/*.tsx
+**/*.ts
+
+# allow dist artifacts
+!dist/**/*.d.ts
+!dist/**/*.js
