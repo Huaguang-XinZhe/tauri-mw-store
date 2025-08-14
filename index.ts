@@ -2,4 +2,4 @@
 export { getState, setState, subscribe } from "./core/StoreManager";
 export { useStoreState } from "./hooks/useStoreState";
 export { defineWindowEvents } from "./core/WindowEvents";
-export { createSchemaStore } from "./core/SchemaStore";
+export { createMWStore } from "./core/SchemaStore";

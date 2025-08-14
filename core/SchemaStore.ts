@@ -1,14 +1,17 @@
 import { defineStore, getState, setState, subscribe } from "./StoreManager";
-import { useStoreState } from "../hooks/useStoreState";
+import { useStoreState, UseStoreStateOptions } from "../hooks/useStoreState";
 
 export type StoreKeyConfig<T> = {
   default: T;
   persist?: boolean;
 };
 
-export type StoreSchema = Record<string, StoreKeyConfig<any>>;
+// 简写方式：直接传值作为默认值，不持久化
+export type StoreKeyConfigOrValue<T> = StoreKeyConfig<T> | T;
 
-type InferValue<C> = C extends StoreKeyConfig<infer T> ? T : never;
+export type StoreSchema = Record<string, StoreKeyConfigOrValue<any>>;
+
+type InferValue<C> = C extends StoreKeyConfig<infer T> ? T : C;
 
 type Accessors<S extends StoreSchema> =
   // getXxx
@@ -22,7 +25,9 @@ type Accessors<S extends StoreSchema> =
     ) => Promise<void>;
   } & {
     // useXxx
-    [K in keyof S & string as `use${Capitalize<K>}`]: () => InferValue<S[K]>;
+    [K in keyof S & string as `use${Capitalize<K>}`]: (
+      options?: UseStoreStateOptions
+    ) => InferValue<S[K]>;
   } & {
     // onXxxChange
     [K in keyof S & string as `on${Capitalize<K>}Change`]: (
@@ -54,15 +59,21 @@ function capitalize(text: string): string {
 /**
  * 基于 schema 的统一初始化与类型安全访问器生成器
  */
-export function createSchemaStore<S extends StoreSchema>(
+export function createMWStore<S extends StoreSchema>(
   schema: S
 ): SchemaStore<S> {
   const initialState: Record<string, any> = {};
   const persistedKeys: string[] = [];
 
   Object.entries(schema).forEach(([key, conf]) => {
-    initialState[key] = conf.default;
-    if (conf.persist) persistedKeys.push(key);
+    // 处理简写方式：如果是对象且有 default 属性，则为完整配置
+    if (typeof conf === "object" && conf !== null && "default" in conf) {
+      initialState[key] = conf.default;
+      if (conf.persist) persistedKeys.push(key);
+    } else {
+      // 简写方式：直接作为默认值，不持久化
+      initialState[key] = conf;
+    }
   });
 
   async function init() {
@@ -98,7 +109,8 @@ export function createSchemaStore<S extends StoreSchema>(
     (acc as any)[`get${cap}`] = () => getState(key) as any;
     (acc as any)[`set${cap}`] = (v: any, emitToWindows?: string[] | "all") =>
       setState(key, v, emitToWindows ?? "all");
-    (acc as any)[`use${cap}`] = () => useStoreState(key);
+    (acc as any)[`use${cap}`] = (options?: UseStoreStateOptions) =>
+      useStoreState(key, options);
     (acc as any)[`on${cap}Change`] = (cb: (v: any) => void) =>
       subscribe(key, cb);
     return acc;

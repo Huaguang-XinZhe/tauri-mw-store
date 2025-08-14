@@ -7,16 +7,15 @@ export class PersistentAdapter {
 
   constructor(fileName = "multi-window-store.bin") {
     this.fileName = fileName;
-    this.initPromise = Store.load(this.fileName).then((s) => {
-      this.store = s;
-      return s;
-    });
+    // 不在构造函数中初始化，延迟到实际使用时
   }
 
   private async ensureStore(): Promise<Store> {
     if (this.store) return this.store;
     if (this.initPromise) return this.initPromise;
-    // 兜底：若构造函数未触发（理论上不会发生），再加载一次
+
+    // 延迟初始化：只有在实际需要时才加载 Store
+    // 注意：需要在 src-tauri/capabilities/default.json 中添加权限 "store:default"
     this.initPromise = Store.load(this.fileName).then((s) => {
       this.store = s;
       return s;

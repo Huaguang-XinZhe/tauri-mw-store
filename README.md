@@ -16,10 +16,10 @@
 
 ```ts
 // 在 store/appStore.ts 中
-import { createSchemaStore, defineWindowEvents } from "@tauri-mw-store";
+import { createMWStore, defineWindowEvents } from "@tauri-mw-store";
 import { EventKey } from "./types";
 
-export const appStore = createSchemaStore({
+export const appStore = createMWStore({
   // ⚠️注意！不要用 user_id 这样的 Key，要用驼峰命名法！
   config: { default: null as any, persist: true },
   newVersionDownloaded: { default: false },
@@ -123,12 +123,37 @@ await setConfig({ theme: "dark" }, "all");
 
 窗口标签可通过 `Window.getCurrent().label` 获取（来自 `@tauri-apps/api/window`）。
 
+## 权限配置
+
+如果您需要使用持久化功能（`persist: true`），需要在 `src-tauri/capabilities/default.json` 中添加 store 权限：
+
+```json
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions",
+  "windows": ["main", "newWindow"],
+  "permissions": [
+    "core:default",
+    "store:default",
+    "core:webview:allow-create-webview-window"
+  ]
+}
+```
+
+**重要说明**：
+
+- ✅ 在 `windows` 数组中包含所有需要使用状态管理的窗口标签
+- ✅ 在 `permissions` 数组中添加 `"store:default"` 权限
+- ✅ 如果没有任何状态需要持久化，将自动跳过 store 插件的加载，无需添加权限
+
 ## 注意事项与最佳实践
 
-- Key 命名请使用驼峰（如 `newVersionDownloaded`），自动生成的 API 才更自然。
-- `createSchemaStore` 只需初始化一次；`defineStore` 内部为幂等实现，重复调用会被忽略。
-- 仅标记了 `persist: true` 的键会参与持久化，其他键为内存态跨窗口同步。
-- 统一的窗口事件注册用 `defineWindowEvents`，避免分散在业务代码中。
+- **Key 命名**：请使用驼峰（如 `newVersionDownloaded`），自动生成的 API 才更自然。
+- **窗口标签命名**：如果窗口的 URL 路径包含横杠分隔（如 `new-window`），窗口标签应使用驼峰命名（如 `newWindow`），否则可能导致权限错误。
+- **初始化**：`createMWStore` 只需初始化一次；`defineStore` 内部为幂等实现，重复调用会被忽略。
+- **持久化**：仅标记了 `persist: true` 的键会参与持久化，其他键为内存态跨窗口同步。
+- **事件注册**：统一的窗口事件注册用 `defineWindowEvents`，避免分散在业务代码中。
 
 ## Keywords
 
