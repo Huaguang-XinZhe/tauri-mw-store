@@ -21,15 +21,20 @@ import { EventKey } from "./types";
 
 export const appStore = createMWStore({
   // ⚠️注意！不要用 user_id 这样的 Key，要用驼峰命名法！
-  config: { default: null as any, persist: true },
-  newVersionDownloaded: { default: false },
+  config: {
+    default: null as any,
+    persist: { saveStrategy: "immediate" }, // 立即保存
+  },
+  theme: {
+    default: "light",
+    persist: true, // 默认为 onClose 策略
+  },
+  newVersionDownloaded: { default: false }, // 不持久化
 });
 
-// 应用入口
-export const initAppStore = () => appStore.init();
-
-// 直接导出自动生成的 API
+// 直接导出自动生成的 API（包含 initAppStore 方法）
 export const {
+  initAppStore,
   getConfig,
   setConfig,
   useConfig,
@@ -41,7 +46,7 @@ export const {
 } = appStore.api as const;
 
 // 在 main.tsx 中
-await initAppStore();
+await initAppStore(); // 自动设置窗口关闭时保存状态
 
 // 声明式窗口事件
 await defineWindowEvents({
@@ -122,6 +127,47 @@ await setConfig({ theme: "dark" }, "all");
 ```
 
 窗口标签可通过 `Window.getCurrent().label` 获取（来自 `@tauri-apps/api/window`）。
+
+## 持久化策略
+
+支持两种持久化保存策略：
+
+### 1. **立即保存 (`immediate`)**
+
+```typescript
+{
+  config: {
+    default: { theme: "light" },
+    persist: { saveStrategy: 'immediate' }
+  }
+}
+```
+
+- ✅ 状态改变时立即保存到磁盘
+- ✅ 数据安全性高，不会因为意外关闭而丢失
+- ⚠️ 频繁修改会有性能影响
+
+### 2. **窗口关闭时保存 (`onClose`, 默认)**
+
+```typescript
+{
+  theme: { default: "light", persist: true },
+  // 等价于
+  theme: {
+    default: "light",
+    persist: { saveStrategy: 'onClose' }
+  }
+}
+```
+
+- ✅ 性能更好，减少磁盘 I/O
+- ✅ 适合频繁变化的状态
+- ⚠️ 需要正确处理窗口关闭事件
+
+**使用建议**：
+
+- 重要配置（如用户设置）→ `immediate` 策略
+- 临时状态（如界面状态）→ `onClose` 策略
 
 ## 权限配置
 

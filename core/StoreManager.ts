@@ -4,61 +4,69 @@ import { ListenerRegistry } from "./ListenerRegistry";
 import { Window } from "@tauri-apps/api/window";
 
 interface StoreOptions {
-  persistedKeys?: string[];
+  immediateKeys?: string[];
+  onCloseKeys?: string[];
 }
 
 export class StoreManager {
   private state: Record<string, any> = {};
   private initialState: Record<string, any> = {};
-  private persistedKeys: Set<string> = new Set();
+  private immediateKeys: Set<string> = new Set();
+  private onCloseKeys: Set<string> = new Set();
   private readonly windowLabel: string;
 
   /**
-   * 允许第二个参数直接传 persistedKeys（string[]），也兼容原有的 options 写法
    * @param initialState 初始状态
-   * @param optionsOrPersistedKeys 可以是 StoreOptions 或 string[]（persistedKeys）
+   * @param options 持久化选项
    */
-  constructor(
-    initialState: Record<string, any>,
-    optionsOrPersistedKeys?: StoreOptions | string[]
-  ) {
+  constructor(initialState: Record<string, any>, options?: StoreOptions) {
     this.windowLabel = Window.getCurrent().label;
     this.initialState = { ...initialState };
     this.state = { ...initialState };
 
-    if (Array.isArray(optionsOrPersistedKeys)) {
-      this.persistedKeys = new Set(optionsOrPersistedKeys);
-    } else if (optionsOrPersistedKeys?.persistedKeys) {
-      this.persistedKeys = new Set(optionsOrPersistedKeys.persistedKeys);
+    if (options) {
+      this.immediateKeys = new Set(options.immediateKeys || []);
+      this.onCloseKeys = new Set(options.onCloseKeys || []);
     }
   }
 
   /**
-   * 仅负责从持久化适配器读取并合并状态（单一职责：加载）
+   * 从持久化存储加载所有持久化状态
    */
-  public async loadPersistedStateOnly() {
-    const persistedState = await persistentAdapter.load(this.persistedKeys);
-    this.state = { ...this.state, ...persistedState };
+  public async loadPersistedState(allPersistedKeys: Set<string>) {
+    if (allPersistedKeys.size > 0) {
+      const persistedState = await persistentAdapter.load(allPersistedKeys);
+      this.state = { ...this.state, ...persistedState };
+    }
   }
 
   /**
-   * 在完成持久化加载后，统一对需要持久化的 key 触发一次通知（单一职责：通知）
+   * 通知所有持久化状态的监听器
    */
-  public notifyPersistedKeys() {
-    for (const key of this.persistedKeys) {
+  public notifyPersistedKeys(allPersistedKeys: Set<string>) {
+    for (const key of allPersistedKeys) {
       ListenerRegistry.notify(key, this.state[key]);
     }
   }
 
   /**
-   * 为了简化调用方，提供一个显式的 hydrate，内部按顺序完成加载与通知
-   * 如果没有持久化的 key，跳过加载以避免插件和权限问题
+   * 初始化：加载持久化状态并设置窗口关闭监听
    */
   public async hydrate() {
     // 只有存在需要持久化的 key 时才执行加载
-    if (this.persistedKeys.size > 0) {
-      await this.loadPersistedStateOnly();
-      this.notifyPersistedKeys();
+    const allPersistedKeys = new Set([
+      ...this.immediateKeys,
+      ...this.onCloseKeys,
+    ]);
+
+    if (allPersistedKeys.size > 0) {
+      await this.loadPersistedState(allPersistedKeys);
+      this.notifyPersistedKeys(allPersistedKeys);
+    }
+
+    // 内置窗口关闭监听
+    if (this.onCloseKeys.size > 0) {
+      this.setupWindowCloseListener();
     }
   }
 
@@ -136,10 +144,12 @@ export class StoreManager {
     // Emit to other windows
     await this.emitToOtherWindows(key, value, emitToWindows);
 
-    // Persist if needed
-    if (this.persistedKeys.has(key)) {
+    // 根据保存策略持久化
+    if (this.immediateKeys.has(key)) {
+      // 立即保存策略
       await persistentAdapter.save(key, value);
     }
+    // onClose 策略的 key 不在这里保存，等窗口关闭时批量保存
   }
 
   private async emitToOtherWindows(
@@ -166,10 +176,12 @@ export class StoreManager {
       this.state[key] = value;
       ListenerRegistry.notify(key, value);
 
-      // Persist if needed
-      if (this.persistedKeys.has(key)) {
+      // 根据保存策略持久化
+      if (this.immediateKeys.has(key)) {
+        // 立即保存策略
         await persistentAdapter.save(key, value);
       }
+      // onClose 策略的 key 不在这里保存，等窗口关闭时批量保存
     });
 
     // 监听同步请求
@@ -187,6 +199,36 @@ export class StoreManager {
       });
     });
   }
+
+  /**
+   * 设置窗口关闭监听，自动保存 onClose 策略的状态
+   */
+  private setupWindowCloseListener(): void {
+    try {
+      Window.getCurrent().onCloseRequested(async () => {
+        console.log("窗口即将关闭，正在保存状态...");
+        await this.saveOnCloseKeys();
+        console.log("状态保存完成");
+      });
+    } catch (error) {
+      console.warn("设置窗口关闭监听失败:", error);
+    }
+  }
+
+  /**
+   * 保存所有使用 onClose 策略的状态
+   * 内部方法，由窗口关闭监听自动调用
+   */
+  private async saveOnCloseKeys(): Promise<void> {
+    const savePromises: Promise<void>[] = [];
+
+    for (const key of this.onCloseKeys) {
+      savePromises.push(persistentAdapter.save(key, this.state[key]));
+    }
+
+    // 并行保存所有状态
+    await Promise.all(savePromises);
+  }
 }
 
 let windowStoreManager: StoreManager | null = null;
@@ -200,11 +242,11 @@ function getStoreManagerInternal(): StoreManager {
 
 export async function defineStore(
   initialState: Record<string, any>,
-  optionsOrPersistedKeys?: StoreOptions | string[]
+  options?: StoreOptions
 ) {
   if (windowStoreManager) return; // 简化：允许仅初始化一次
 
-  windowStoreManager = new StoreManager(initialState, optionsOrPersistedKeys);
+  windowStoreManager = new StoreManager(initialState, options);
   await windowStoreManager.hydrate();
   await windowStoreManager.listenToIncomingUpdates();
 }
