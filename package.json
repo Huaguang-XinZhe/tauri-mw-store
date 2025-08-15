@@ -1,6 +1,6 @@
 {
   "name": "tauri-mw-store",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "description": "Multi-window state sync for Tauri apps with React hooks and schema-driven store.",
   "license": "MIT",
   "author": "huaguang <2475096613@qq.com>",
@@ -34,7 +34,12 @@
   },
   "scripts": {
     "build": "tsup",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "release": "node release.js",
+    "release:patch": "node release.js patch",
+    "release:minor": "node release.js minor",
+    "release:major": "node release.js major",
+    "prepublishOnly": "bun run clean && bun run build"
   },
   "devDependencies": {
     "@types/react": "^19.1.9",
