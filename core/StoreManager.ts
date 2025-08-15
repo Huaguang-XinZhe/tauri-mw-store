@@ -208,6 +208,8 @@ export class StoreManager {
       Window.getCurrent().onCloseRequested(async () => {
         console.log("窗口即将关闭，正在保存状态...");
         await this.saveOnCloseKeys();
+        // 调试延迟
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         console.log("状态保存完成");
       });
     } catch (error) {

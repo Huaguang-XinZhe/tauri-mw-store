@@ -72,7 +72,7 @@ function capitalize(text: string): string {
 /**
  * 基于 schema 的统一初始化与类型安全访问器生成器
  */
-export function createMWStore<S extends StoreSchema>(
+export function createMWStore<S extends Record<string, StoreValue>>(
   schema: S
 ): SchemaStore<S> {
   const initialState: Record<string, any> = {};

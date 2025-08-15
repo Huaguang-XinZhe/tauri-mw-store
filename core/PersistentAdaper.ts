@@ -24,7 +24,9 @@ export class PersistentAdapter {
   }
 
   async load(keys: Set<string>): Promise<Record<string, any>> {
+    console.log("PersistentAdapter load", keys);
     const store = await this.ensureStore();
+    console.log("PersistentAdapter load", store);
     const result: Record<string, any> = {};
     for (const key of keys) {
       const value = await store.get(key);
@@ -32,6 +34,7 @@ export class PersistentAdapter {
         result[key] = value;
       }
     }
+    console.log("PersistentAdapter load", result);
     return result;
   }
 
