@@ -11,9 +11,11 @@ export type StoreKeyConfig<T> = {
       };
 };
 
-// 内部使用的类型，不导出
+// 改进的类型定义：更精确的类型约束
 type StoreValue<T = any> = StoreKeyConfig<T> | T;
-type StoreSchema = Record<string, StoreValue>;
+
+// 使用更严格的类型约束来获得更好的类型提示
+type StoreSchema = Record<string, StoreValue<any>>;
 
 // 改进的类型推断：更准确地识别配置对象
 type InferValue<C> =
@@ -22,6 +24,10 @@ type InferValue<C> =
     ? T
     : // 否则直接使用值类型
       C;
+
+// 帮助函数：用于创建配置对象，提供更好的类型提示
+export const storeConfig = <T>(config: StoreKeyConfig<T>): StoreKeyConfig<T> =>
+  config;
 
 type Accessors<S extends StoreSchema> = {
   /** 初始化 store */
@@ -71,8 +77,17 @@ function capitalize(text: string): string {
 
 /**
  * 基于 schema 的统一初始化与类型安全访问器生成器
+ *
+ * @example
+ * ```typescript
+ * const appStore = createMWStore({
+ *   count: storeConfig({ default: 0, persist: true }),
+ *   name: storeConfig({ default: 'hello' }),
+ *   simpleValue: 42 // 简写形式，不持久化
+ * });
+ * ```
  */
-export function createMWStore<S extends Record<string, StoreValue>>(
+export function createMWStore<S extends StoreSchema>(
   schema: S
 ): SchemaStore<S> {
   const initialState: Record<string, any> = {};
