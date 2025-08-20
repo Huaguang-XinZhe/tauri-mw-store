@@ -253,6 +253,13 @@ export class StoreManager {
     // 并行保存所有状态
     await Promise.all(savePromises);
   }
+
+  /**
+   * 获取当前存储中的所有键
+   */
+  public async getAllStoredKeys(): Promise<string[]> {
+    return await persistentAdapter.getAllKeys();
+  }
 }
 
 let windowStoreManager: StoreManager | null = null;
@@ -298,4 +305,11 @@ export async function setState(
 
 export function subscribe(key: string, callback: (value: any) => void) {
   return ListenerRegistry.addListener(key, callback);
+}
+
+/**
+ * 获取当前存储中的所有键（用于调试）
+ */
+export async function getAllStoredKeys(): Promise<string[]> {
+  return getStoreManagerInternal().getAllStoredKeys();
 }

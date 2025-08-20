@@ -9,3 +9,6 @@ export { defineWindowEvents } from "./core/WindowEvents";
 
 // 底层 API（通常通过 createMWStore 生成的 api 使用，但保留导出供高级用户使用）
 // export { getState, setState, subscribe } from "./core/StoreManager";
+
+// 维护 API（供调试和清理使用）
+export { getAllStoredKeys } from "./core/StoreManager";
