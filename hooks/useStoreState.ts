@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { ListenerRegistry } from "../core/ListenerRegistry";
-import { getDefaultState, requestStateSync } from "../core/StoreManager";
+import {
+  getDefaultState,
+  getState,
+  requestStateSync,
+} from "../core/StoreManager";
 import { Window } from "@tauri-apps/api/window";
 
 export interface UseStoreStateOptions {
@@ -27,12 +31,33 @@ export function useStoreState<T = any>(
       setValue(value as T);
     });
 
-    // 如果是同步模式，主动请求同步最新状态
-    // 注意：requestStateSync 内部已经会通知监听器，
-    // 所以这里不需要再手动 setValue，监听器会自动处理
-    if (sync && windowLabel !== "main") {
-      // 非主窗口才同步
-      requestStateSync<T>(key);
+    if (sync) {
+      if (windowLabel !== "main") {
+        // 非主窗口：主动请求同步最新状态
+        requestStateSync<T>(key);
+      } else {
+        // 主窗口：直接检查当前状态，因为 hydrate 可能已经完成
+        // 使用 setTimeout 确保在 microtask 队列后执行，让 hydrate 有机会完成
+        setTimeout(() => {
+          try {
+            const currentValue = getState<T>(key);
+            const defaultValue = getDefaultState<T>(key);
+
+            // 简单的值比较：如果当前值与默认值不同，说明已经 hydrate 了
+            if (currentValue !== defaultValue) {
+              console.log(
+                "useStoreState 主窗口检测到 hydrate 后的值",
+                key,
+                currentValue
+              );
+              setValue(currentValue);
+            }
+          } catch (error) {
+            // Store 可能还没初始化，忽略错误
+            console.log("useStoreState 主窗口检查状态时出错", error);
+          }
+        }, 0);
+      }
     }
 
     return () => unsubscribe();
