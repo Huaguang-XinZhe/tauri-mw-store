@@ -53,22 +53,7 @@ type Accessors<S extends StoreSchema> = {
   ) => () => void;
 };
 
-// 内部使用的类型，不导出
-type SchemaStore<S extends StoreSchema> = {
-  init: () => Promise<void>;
-  get: <K extends keyof S>(key: K) => InferValue<S[K]>;
-  set: <K extends keyof S>(
-    key: K,
-    value: InferValue<S[K]>,
-    emitToWindows?: string[] | "all"
-  ) => Promise<void>;
-  subscribe: <K extends keyof S>(
-    key: K,
-    cb: (value: InferValue<S[K]>) => void
-  ) => () => void;
-  /** 基于 key 自动生成的便捷方法集合 */
-  api: Accessors<S>;
-};
+// 由于现在直接返回 Accessors，不再需要内部 SchemaStore 类型
 
 // 首字母大写
 function capitalize(text: string): string {
@@ -85,11 +70,14 @@ function capitalize(text: string): string {
  *   name: storeConfig({ default: 'hello' }),
  *   simpleValue: 42 // 简写形式，不持久化
  * });
+ *
+ * // 用户只会看到 api 对象的方法
+ * await appStore.initAppStore();
+ * const count = appStore.getCount();
+ * await appStore.setCount(5);
  * ```
  */
-export function createMWStore<S extends StoreSchema>(
-  schema: S
-): SchemaStore<S> {
+export function createMWStore<S extends StoreSchema>(schema: S): Accessors<S> {
   const initialState: Record<string, any> = {};
   const immediateKeys: string[] = [];
   const onCloseKeys: string[] = [];
@@ -168,11 +156,6 @@ export function createMWStore<S extends StoreSchema>(
     } as Accessors<S>
   );
 
-  return {
-    init,
-    get,
-    set,
-    subscribe: subscribeKey,
-    api,
-  };
+  // 只返回 api 对象，隐藏底层的 init、get、set、subscribe 方法
+  return api;
 }
