@@ -1,6 +1,6 @@
 {
   "name": "tauri-mw-store",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "Multi-window state sync for Tauri apps with React hooks and schema-driven store.",
   "license": "MIT",
   "author": "huaguang <2475096613@qq.com>",
