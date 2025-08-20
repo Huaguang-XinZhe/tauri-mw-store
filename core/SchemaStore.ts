@@ -114,28 +114,28 @@ export function createMWStore<S extends StoreSchema>(schema: S): Accessors<S> {
     });
   }
 
-  function get<K extends keyof S>(key: K): InferValue<S[K]> {
-    return getState(key as string) as any;
-  }
+  // function get<K extends keyof S>(key: K): InferValue<S[K]> {
+  //   return getState(key as string) as any;
+  // }
 
-  function set<K extends keyof S>(
-    key: K,
-    value: InferValue<S[K]>,
-    emitToWindows?: string[] | "all"
-  ): Promise<void> {
-    return setState(
-      key as string,
-      value,
-      emitToWindows ?? "all"
-    ) as Promise<void>;
-  }
+  // function set<K extends keyof S>(
+  //   key: K,
+  //   value: InferValue<S[K]>,
+  //   emitToWindows?: string[] | "all"
+  // ): Promise<void> {
+  //   return setState(
+  //     key as string,
+  //     value,
+  //     emitToWindows ?? "all"
+  //   ) as Promise<void>;
+  // }
 
-  function subscribeKey<K extends keyof S>(
-    key: K,
-    cb: (value: InferValue<S[K]>) => void
-  ) {
-    return subscribe(key as string, cb);
-  }
+  // function subscribeKey<K extends keyof S>(
+  //   key: K,
+  //   cb: (value: InferValue<S[K]>) => void
+  // ) {
+  //   return subscribe(key as string, cb);
+  // }
 
   // 基于 key 生成 getXxx/setXxx/useXxx/onXxxChange
   const api = Object.keys(schema).reduce(

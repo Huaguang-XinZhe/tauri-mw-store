@@ -6,6 +6,11 @@ import { Window } from "@tauri-apps/api/window";
 interface StoreOptions {
   immediateKeys?: string[];
   onCloseKeys?: string[];
+  /**
+   * 是否在初始化时自动清理不再需要的持久化键
+   * @default true
+   */
+  autoCleanup?: boolean;
 }
 
 export class StoreManager {
@@ -14,6 +19,7 @@ export class StoreManager {
   private immediateKeys: Set<string> = new Set();
   private onCloseKeys: Set<string> = new Set();
   private readonly windowLabel: string;
+  private readonly autoCleanup: boolean;
 
   /**
    * @param initialState 初始状态
@@ -23,6 +29,7 @@ export class StoreManager {
     this.windowLabel = Window.getCurrent().label;
     this.initialState = { ...initialState };
     this.state = { ...initialState };
+    this.autoCleanup = options?.autoCleanup ?? true;
 
     if (options) {
       this.immediateKeys = new Set(options.immediateKeys || []);
@@ -53,12 +60,27 @@ export class StoreManager {
    * 初始化：加载持久化状态并设置窗口关闭监听
    */
   public async hydrate() {
-    // 只有存在需要持久化的 key 时才执行加载
+    // 获取当前配置的所有持久化键
     const allPersistedKeys = new Set([
       ...this.immediateKeys,
       ...this.onCloseKeys,
     ]);
 
+    // 自动清理不再需要的持久化键
+    if (this.autoCleanup) {
+      try {
+        const orphanedKeys = await persistentAdapter.cleanupOrphanedKeys(
+          allPersistedKeys
+        );
+        if (orphanedKeys.length > 0) {
+          console.log(`已清理 ${orphanedKeys.length} 个孤立的持久化键`);
+        }
+      } catch (error) {
+        console.warn("清理孤立键时出错:", error);
+      }
+    }
+
+    // 只有存在需要持久化的 key 时才执行加载
     if (allPersistedKeys.size > 0) {
       await this.loadPersistedState(allPersistedKeys);
       this.notifyPersistedKeys(allPersistedKeys);

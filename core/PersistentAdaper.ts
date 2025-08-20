@@ -55,6 +55,41 @@ export class PersistentAdapter {
     await store.clear();
     await store.save();
   }
+
+  /**
+   * 获取存储中所有键的列表
+   */
+  async getAllKeys(): Promise<string[]> {
+    const store = await this.ensureStore();
+    return await store.keys();
+  }
+
+  /**
+   * 批量删除指定的键
+   */
+  async removeBatch(keys: string[]): Promise<void> {
+    const store = await this.ensureStore();
+    for (const key of keys) {
+      await store.delete(key);
+    }
+    await store.save();
+  }
+
+  /**
+   * 清理不再需要的持久化键
+   * @param currentKeys 当前配置中需要持久化的键集合
+   */
+  async cleanupOrphanedKeys(currentKeys: Set<string>): Promise<string[]> {
+    const allStoredKeys = await this.getAllKeys();
+    const orphanedKeys = allStoredKeys.filter((key) => !currentKeys.has(key));
+
+    if (orphanedKeys.length > 0) {
+      console.log(`清理孤立的持久化键: ${orphanedKeys.join(", ")}`);
+      await this.removeBatch(orphanedKeys);
+    }
+
+    return orphanedKeys;
+  }
 }
 
 export const persistentAdapter = new PersistentAdapter();
