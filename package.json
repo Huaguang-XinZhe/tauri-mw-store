@@ -1,7 +1,26 @@
 {
   "name": "tauri-mw-store",
   "version": "2.3.0",
-  "description": "Multi-window state sync for Tauri apps with React hooks and schema-driven store.",
+  "description": "Declarative multi-window state management for Tauri apps with React hooks, schema-driven persistence, and automatic synchronization.",
+  "keywords": [
+    "tauri",
+    "react",
+    "state-management",
+    "multi-window",
+    "hooks",
+    "store",
+    "persistence",
+    "desktop",
+    "electron-alternative",
+    "typescript",
+    "schema-driven",
+    "cross-window",
+    "sync",
+    "declarative",
+    "reactive",
+    "automatic",
+    "configuration-driven"
+  ],
   "license": "MIT",
   "author": "huaguang <2475096613@qq.com>",
   "repository": {
