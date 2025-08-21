@@ -3,6 +3,8 @@
 [![npm version](https://badge.fury.io/js/tauri-mw-store.svg?icon=si%3Anpm)](https://badge.fury.io/js/tauri-mw-store)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> [English Documentation](./README.en.md) | 中文文档
+
 🚀 **声明式全局状态管理 + 持久化 Store + 窗口初始化配置，专为 Tauri 多窗口应用设计。**
 
 一个专为 Tauri 应用设计的声明式状态管理库，提供类型安全的全局状态、自动持久化存储和声明式窗口事件配置。
