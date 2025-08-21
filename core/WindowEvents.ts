@@ -1,14 +1,18 @@
 import { listen, emit } from "@tauri-apps/api/event";
 import { Window } from "@tauri-apps/api/window";
 
-export type EventHandler<T = any> = (context?: T) => void | Promise<void>;
+export type EventHandler<T = void> = T extends void
+  ? () => void | Promise<void>
+  : (context: T) => void | Promise<void>;
 
-export type WindowEventsConfig<T = any> = {
-  [windowLabel: string]: {
-    listeners?: Record<string, EventHandler<T>>;
-    emitOnInit?: Array<string | { event: string; payload?: any }>;
-    onInit?: () => T | Promise<T>;
-  };
+export type WindowConfig<T = void> = {
+  listeners?: Record<string, EventHandler<T>>;
+  emitOnInit?: Array<string | { event: string; payload?: any }>;
+  onInit?: () => T | Promise<T>;
+};
+
+export type WindowEventsConfig = {
+  [windowLabel: string]: WindowConfig<any>;
 };
 
 export type WindowEventsController = {
@@ -19,7 +23,7 @@ export type WindowEventsController = {
  * 根据当前窗口标签，按声明式配置注册事件监听与初始化触发。
  * 使用者仅需在入口处调用一次。
  *
- * 支持 onInit 返回共享状态，供 EventHandler 使用：
+ * onInit 返回的值会自动作为 listeners 中所有处理器的参数：
  * @example
  * ```ts
  * await defineWindowEvents({
@@ -33,11 +37,15 @@ export type WindowEventsController = {
  *       [EventKey.INSTALL_REQUEST]: ({ updater }) => updater.askAndInstall(),
  *     },
  *   },
+ *   settings: {
+ *     onInit: () => console.log("✅ 设置窗口初始化完成"),
+ *     emitOnInit: [EventKey.CHECK_UPDATE],
+ *   },
  * });
  * ```
  */
-export async function defineWindowEvents<T = any>(
-  config: WindowEventsConfig<T>
+export async function defineWindowEvents(
+  config: WindowEventsConfig
 ): Promise<WindowEventsController | undefined> {
   const currentLabel = Window.getCurrent().label;
   const current = config[currentLabel];
@@ -46,15 +54,22 @@ export async function defineWindowEvents<T = any>(
   const unsubs: Array<() => void> = [];
 
   // 先运行自定义初始化钩子，获取共享状态
-  let sharedContext: T | undefined;
+  let context: any = undefined;
   if (current.onInit) {
-    sharedContext = await current.onInit();
+    context = await current.onInit();
   }
 
-  // 注册监听（现在可以访问共享状态）
+  // 注册监听
   if (current.listeners) {
     for (const [eventName, handler] of Object.entries(current.listeners)) {
-      const un = await listen(eventName, () => handler(sharedContext));
+      const un = await listen(eventName, () => {
+        // 如果 onInit 有返回值，传递给 handler；否则不传参数
+        if (context !== undefined) {
+          (handler as any)(context);
+        } else {
+          (handler as any)();
+        }
+      });
       unsubs.push(() => un());
     }
   }
