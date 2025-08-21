@@ -1,7 +1,7 @@
 // 导出核心 API
 export { createMWStore, storeConfig } from "./core/SchemaStore";
 // export { useStoreState } from "./hooks/useStoreState";
-export { defineWindowEvents } from "./core/WindowEvents";
+export { defineWindowEvents, window } from "./core/WindowEvents";
 
 // 导出类型（供用户使用）
 // export type { StoreKeyConfig } from "./core/SchemaStore";
