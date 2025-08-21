@@ -1,6 +1,6 @@
 {
   "name": "tauri-mw-store",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Declarative multi-window state management for Tauri apps with React hooks, schema-driven persistence, and automatic synchronization.",
   "keywords": [
     "tauri",
