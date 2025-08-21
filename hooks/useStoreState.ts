@@ -8,15 +8,15 @@ import {
 import { Window } from "@tauri-apps/api/window";
 
 export interface UseStoreStateOptions {
-  /** 是否同步其他窗口对应 key 的状态，默认为 true */
-  sync?: boolean;
+  /** 窗口创建时是否从其他窗口同步当前状态，默认为 true */
+  syncOnMount?: boolean;
 }
 
 export function useStoreState<T = any>(
   key: string,
   options: UseStoreStateOptions = {}
 ): T {
-  const { sync = true } = options;
+  const { syncOnMount = true } = options;
 
   // 初始化：总是使用默认值，不管是否同步
   // 因为同步是异步的，useState 执行时还没有同步的值
@@ -31,7 +31,7 @@ export function useStoreState<T = any>(
       setValue(value as T);
     });
 
-    if (sync) {
+    if (syncOnMount) {
       if (windowLabel !== "main") {
         // 非主窗口：主动请求同步最新状态
         requestStateSync<T>(key);
@@ -61,7 +61,7 @@ export function useStoreState<T = any>(
     }
 
     return () => unsubscribe();
-  }, [key, sync]);
+  }, [key, syncOnMount]);
 
   return value;
 }
